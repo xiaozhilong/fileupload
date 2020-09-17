@@ -1,0 +1,72 @@
+<!--
+ * @Description: 
+ * @Autor: xiaozhilong
+ * @Date: 2020-09-13 17:37:10
+ * @LastEditors: xiaozhilong
+ * @LastEditTime: 2020-09-13 17:47:53
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>js获取文章md5值</title>
+    <style>
+        body {
+            text-align: center;
+            font: 14px
+        }
+
+        pre {
+            background: #ffd;
+            border: 1px solid orange;
+            padding: 1em;
+            margin: 0 auto;
+            display: none;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <form method="POST" enctype="multipart/form-data" onsubmit="return false;"><input id=file type=file
+            placeholder="选择文件" /></form>
+    <pre id=log></pre>
+    <script src="/spark-md5.min.js"></script>
+    <script>
+        var log = document.getElementById("log");
+        document.getElementById("file").addEventListener("change", function () {
+            var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
+                file = this.files[0],
+                chunkSize = 10*1024*1024, // 每次读取2MB
+                chunks = Math.ceil(file.size / chunkSize),
+                currentChunk = 0,
+                spark = new SparkMD5.ArrayBuffer(),
+                frOnload = function (e) {
+                    log.innerHTML += "\n读取文件 " + parseInt(currentChunk + 1) + " of " + chunks;
+                    spark.append(e.target.result);
+                    currentChunk++;
+                    if (currentChunk < chunks)
+                        loadNext();
+                    else
+                        log.innerHTML += "\n读取完成！\n\n文件md5:" + spark.end() + "\n";
+                },
+                frOnerror = function () {
+                    log.innerHTML += "\n出错了.";
+                };
+            function loadNext() {
+                var fileReader = new FileReader();
+                fileReader.onload = frOnload;
+                fileReader.onerror = frOnerror;
+                var start = currentChunk * chunkSize,
+                    end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
+                fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+            };
+            log.style.display = "inline-block";
+            log.innerHTML = "选择文件: " + file.name + " (" + file.size.toString().replace(/\B(?=(?:\d{3})+(?!\d))/g, ',') + " bytes)\n";
+            loadNext();
+        });
+    </script>
+</body>
+
+</html>
