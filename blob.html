@@ -1,0 +1,45 @@
+<!--
+ * @Description: 
+ * @Autor: xiaozhilong
+ * @Date: 2020-09-12 11:50:54
+ * @LastEditors: xiaozhilong
+ * @LastEditTime: 2020-09-12 12:47:36
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>blob</title>
+    <style>
+        #vio {
+            width: 600px;
+            height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <input type="file" id="upload" />
+    <img src="" alt="" id="pic" />
+    <video id="vio" controls="true">
+
+    </video>
+</body>
+<script>
+    document.getElementById("upload").addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        console.log(e.target.files[0]);
+        var URL = window.URL;
+        var objectUrl = URL.createObjectURL(file);
+        console.log(objectUrl);
+        var pic = document.getElementById('vio');
+        pic.src = objectUrl;
+        pic.onload = function () {
+            URL.revokeObjectURL(objectUrl);
+        }
+    })
+</script>
+
+</html>

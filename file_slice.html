@@ -1,0 +1,285 @@
+<!--
+ * @Description: 
+ * @Autor: xiaozhilong
+ * @Date: 2020-09-12 12:49:47
+ * @LastEditors: xiaozhilong
+ * @LastEditTime: 2020-09-13 19:30:54
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>file_slice</title>
+    <link rel="stylesheet" href="/layui/css/layui.css">
+    <script src="https://cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="https://cdn.bootcss.com/pace/1.0.2/themes/pink/pace-theme-flash.css" rel="stylesheet">
+    <style>
+        #vio {
+            width: 600px;
+            height: 300px;
+        }
+
+        .pace .pace-progress {
+            background: #1E92FB;
+            /*进度条颜色*/
+            height:3px;
+        }
+
+        .pace .pace-progress-inner {
+            box-shadow: 0 0 10px #1E92FB, 0 0 5px #1E92FB;
+            /*阴影颜色*/
+        }
+
+        .pace .pace-activity {
+            border-top-color: #1E92FB;
+            /*上边框颜色*/
+            border-left-color: #1E92FB;
+            /*左边框颜色*/
+        }
+    </style>
+</head>
+
+<body onbeforeunload="goodbye()">
+    <input type="file" id="upload" />
+    <video id="vio" controls="true">
+
+    </video>
+    <div class="layui-progress layui-progress-big" lay-filter="demo" lay-showPercent="true" style="width: 600px;">
+        <div class="layui-progress-bar layui-bg-blue" lay-percent="0%"></div>
+    </div>
+</body>
+<script src="/jquery.min.js"></script>
+<script src="/spark-md5.min.js"></script>
+<script src="/layui/layui.js"></script>
+<script>
+    function goodbye() {
+        debugger
+        console.log("离开了")
+    }
+    var element;
+    //注意进度条依赖 element 模块，否则无法进行正常渲染和功能性操作
+    layui.use('element', function () {
+        element = layui.element;
+    });
+    var length = 0, num = 0;
+    var fileName;
+    document.getElementById('upload').addEventListener('change', function (e) {
+        // debugger
+        var file = e.target.files[0];
+        var URL = window.URL;
+        var objectUrl = URL.createObjectURL(file);
+        console.log(objectUrl);
+        var pic = document.getElementById('vio');
+        pic.src = objectUrl;
+        pic.onload = function () {
+            URL.revokeObjectURL(objectUrl);
+        }
+        fileName = file.name.split(".");
+        console.log(file);
+        // console.log(file.slice(0,1024*100));
+        var cur = 0, size = 10 * 1024 * 1024;//1m
+        var fileChunkList = [];
+        while (cur < file.size) {
+            fileChunkList.push(
+                {
+                    file: file.slice(cur, cur + size),
+                    fileName: '',
+                    hash: '',
+                }
+            );
+            cur += size;
+        }
+        console.log(fileChunkList);
+        length = fileChunkList.length;
+        var spark = new SparkMD5.ArrayBuffer();
+        let percentage = 0;//进度
+        let count = 0;//
+        var data = {
+            percentage: 0,
+            hash: ''
+        }
+        function loadNext(index) {
+            const reader = new FileReader();//文件流对象
+            reader.readAsArrayBuffer(fileChunkList[index].file);//二进制读取
+            //加载完成
+            reader.onload = function (e) {
+                count++;
+                spark.append(e.target.result);
+                if (count === fileChunkList.length) {
+                    data.percentage = 100;
+                    element.progress('demo', data.percentage + '%');
+                    data.hash = spark.end();
+                    console.log(data);
+                    // var result = new Promise(function (resolve, reject) {
+                    //     resolve(
+                    fileChunkList.forEach(function (item, index) {
+                        debugger
+                        fileChunkList[index].hash = data.hash + "_" + index;
+                        fileChunkList[index].fileName = data.hash;
+
+                        // formdata.append("fileName",fileName+"_"+index);
+                        //填充完毕
+                        $.ajax({
+                            url: "http://122.51.227.164:5001/api/File/VerifyUpload?fileName=" + item.fileName + "&hash=" + item.hash,
+                            type: 'post',
+                            cache: false,
+                            dataType: "json",
+                            // data: "fileName="+item.fileName+"&hash="+item.hash,
+                            // timeout: 5000,
+                            //必须false才会避开jQuery对 formdata 的默认处理 
+                            // XMLHttpRequest会对 formdata 进行正确的处理
+                            processData: false,
+                            //必须false才会自动加上正确的Content-Type 
+                            contentType: false,
+                            xhrFields: {
+                                withCredentials: true
+                            },
+                            success: function (data) {
+                                console.log("1_1_1");
+                                console.log(data);
+
+                                if (data.isUpload)//上转
+                                {
+                                    var hasss = data.hash.split("_")[1];
+                                    var formdata = new FormData();
+                                    formdata.append("file", fileChunkList[hasss].file, fileChunkList[hasss].fileName + "_" + index + "." + fileName[1]);
+                                    $.ajax({
+                                        url: "http://122.51.227.164:5001/api/File/FileUpload",
+                                        type: 'POST',
+                                        cache: false,
+                                        dataType: "json",
+                                        data: formdata,
+                                        // timeout: 5000,
+                                        //必须false才会避开jQuery对 formdata 的默认处理 
+                                        // XMLHttpRequest会对 formdata 进行正确的处理
+                                        processData: false,
+                                        //必须false才会自动加上正确的Content-Type 
+                                        contentType: false,
+                                        // xhrFields: {
+                                        //     withCredentials: true
+                                        // },
+                                        success: function (data) {
+                                            console.log("2_2_2");
+                                            // alert("1")
+
+                                            // console.log(data);
+
+                                            // isAllSuccess();
+                                        }
+                                    });
+                                }
+                                // isAllSuccess();
+                            }
+                        });
+                    })
+
+                    //     )
+                    // });
+
+                    //     Promise.all(result);
+                    //    console.log("完成了")
+
+                    // fileChunkList.forEach(function (item, index) {
+                    //     var formdata = new FormData();
+                    //     formdata.append("file", item.file, data.hash + "_" + index + "." + fileName[1]);
+                    //     // formdata.append("fileName",fileName+"_"+index);
+                    //     $.ajax({
+                    //         url: "http://localhost:5000/api/File/FileUpload",
+                    //         type: 'POST',
+                    //         cache: false,
+                    //         dataType: "json",
+                    //         data: formdata,
+                    //         // timeout: 5000,
+                    //         //必须false才会避开jQuery对 formdata 的默认处理 
+                    //         // XMLHttpRequest会对 formdata 进行正确的处理
+                    //         processData: false,
+                    //         //必须false才会自动加上正确的Content-Type 
+                    //         contentType: false,
+                    //         xhrFields: {
+                    //             withCredentials: true
+                    //         },
+                    //         success: function (data) {
+                    //             debugger
+                    //             console.log(data);
+                    //             isAllSuccess();
+                    //         }
+                    //     });
+                    // })
+
+                } else {
+
+                    data.percentage += (100 / fileChunkList.length)//百分比
+
+                    element.progress('demo', data.percentage + '%');
+
+                    console.log(data)
+                    loadNext(count);
+                }
+            }
+        };
+        loadNext(0)
+        // debugger
+        // fileChunkList.forEach(function (item, index) {
+        //     var formdata=new FormData();
+        //     formdata.append("file",item.file,fileName[0]+"_"+index+"."+fileName[1]);
+        //     // formdata.append("fileName",fileName+"_"+index);
+        //     $.ajax({
+        //         url: "http://localhost:5000/api/File/FileUpload",
+        //         type: 'POST',
+        //         cache: false,
+        //         dataType: "json",
+        //         data:formdata,
+        //         // timeout: 5000,
+        //         //必须false才会避开jQuery对 formdata 的默认处理 
+        //         // XMLHttpRequest会对 formdata 进行正确的处理
+        //         processData: false,
+        //         //必须false才会自动加上正确的Content-Type 
+        //         contentType: false,
+        //         xhrFields: {
+        //             withCredentials: true
+        //         },
+        //         success: function (data) {
+        //             debugger
+        //             console.log(data);
+        //             isAllSuccess();
+        //         }
+        //     });
+        // })
+
+    })
+
+    function isAllSuccess() {
+        ++num;
+        if (num == length) {
+            console.log("ajax请求全部完成");
+            $.ajax({
+                url: "http://localhost:5000/api/File/MeUpload",
+                type: 'POST',
+                cache: false,
+                dataType: "json",
+                data: { name: fileName.split(".") },
+                // timeout: 5000,
+                //必须false才会避开jQuery对 formdata 的默认处理 
+                // XMLHttpRequest会对 formdata 进行正确的处理
+                processData: false,
+                //必须false才会自动加上正确的Content-Type 
+                contentType: false,
+                xhrFields: {
+                    withCredentials: true
+                },
+                success: function (data) {
+                    debugger
+                    console.log(data);
+                    // isAllSuccess();
+                }
+            });
+        }
+        else {
+            console.log(num);
+        }
+    }
+</script>
+
+</html>
