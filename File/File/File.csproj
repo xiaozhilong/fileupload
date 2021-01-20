@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UserSecretsId>ce749875-a116-4dee-bb65-b52d7a2a6bdc</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="upload\hello\**" />
+    <Content Remove="upload\hello\**" />
+    <EmbeddedResource Remove="upload\hello\**" />
+    <None Remove="upload\hello\**" />
+  </ItemGroup>
+
+
+</Project>
